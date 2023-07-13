@@ -160,7 +160,7 @@
             $invoice_id     = $checkout["data"]["invoice_id"] ?? 0;
 
             $invoice            = Invoices::get($invoice_id);
-            $method_msg         = $invoice["pmethod_msg"] ?? [];
+            $method_msg         = Utility::jdecode($invoice["pmethod_msg"] ?? [],true);
             $transaction_id     = $method_msg["Transaction ID"] ?? false;
 
 
