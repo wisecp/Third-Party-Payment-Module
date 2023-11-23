@@ -88,8 +88,13 @@
 
         public function area($params=[])
         {
-            $merchant_id = $this->config["settings"]["example1"] ?? 0;
+            // Config Variable
+            $merchant_id    = $this->config["settings"]["example1"] ?? "none";
+            $secret_key     = $this->config["settings"]["example2"] ?? "none";
 
+            // For more variables: https://dev.wisecp.com/en/kb/third-party-method
+
+            // Sample return output
             return
                 '<form action="https://www.sample.com/checkout" method="POST">
                     <input type="hidden" name="merchant_id" value="'.$merchant_id.'">
@@ -103,13 +108,15 @@
 
         public function callback()
         {
+            // Obtain the custom id that you forwarded to the payment provider.
             $custom_id      = (int) Filter::init("POST/custom_id","numbers");
 
             if(!$custom_id){
-                $this->error = 'ERROR: Custom id not found.';
+                $this->error = 'Custom id not found.';
                 return false;
             }
 
+            // Let's get the checkout information.
             $checkout       = $this->get_checkout($custom_id);
 
             // Checkout invalid error
@@ -126,20 +133,25 @@
 
             return [
                 /* You can define it as 'successful' or 'pending'.
-                 * 'successful' : Write if the payment is complete.
-                 * 'pending' : Write if the payment is pending confirmation.
-                 */
+                    * 'successful' : Write if the payment is complete.
+                    * 'pending' : Write if the payment is pending confirmation.
+                    */
                 'status'            => 'successful',
 
                 /*
-                 * If there is anything you need to inform the manager about the payment, please fill it out.
-                 * Acceptable value : 'array' and 'string'
-                 */
+                    * You can host any id number for any information you need to report to the administrator after payment or for later use in returning the invoice. This information will be stored as JSON type in the invoices.pmethod_msg field in the database.
+                    * Acceptable value : 'array' and 'string'
+                    */
                 'message'        => [
                     'Merchant Transaction ID' => '123X456@23',
                 ],
-                // Write if you want to show a message to the person on the callback page.
+                /*
+                    * When requests are sent to the callback address regarding the status of the payment, you can use this field to provide a specific response. If you do not use this field, the response will direct to the 'Payment Completed' page if the payment is successful, or to the 'Payment Failed' page if it is unsuccessful.
+                */
                 'callback_message'        => 'Transaction Successful',
+                /*
+                    * This index is optional and is used to indicate the total amount paid on the side of the payment intermediary. If the paid amount exceeds the total amount of the invoice, the excess is added to the invoice as a payment commission. This index contains two sub-indices: The first sub-index, 'amount', should be of the float type. 'Currency' refers to the currency code, which should be specified according to ISO 4217 standards.
+                */
                 'paid'                    => [
                     'amount'        => 15,
                     'currency'      => "USD",
@@ -147,21 +159,17 @@
             ];
         }
 
-        /*
-         * If your payment service provider does not support the refund feature, you can remove the functionality.
-         */
-        public function refund($checkout=[])
+        // If your payment service provider does not support the refund feature, you can remove the functionality.
+        public function refundInvoice($invoice=[])
         {
-            $custom_id      = $checkout["id"];
             $api_key        = $this->config["settings"]["example1"] ?? 'N/A';
             $secret_key     = $this->config["settings"]["example2"] ?? 'N/A';
-            $amount         = $checkout["data"]["total"];
-            $currency       = $this->currency($checkout["data"]["currency"]);
-            $invoice_id     = $checkout["data"]["invoice_id"] ?? 0;
+            $amount         = $invoice["total"];
+            $currency       = $this->currency($invoice["currency"]);
 
-            $invoice            = Invoices::get($invoice_id);
+            // In callback or capture functions, the data transmitted as 'message' in the return value is retrieved.
             $method_msg         = Utility::jdecode($invoice["pmethod_msg"] ?? [],true);
-            $transaction_id     = $method_msg["Transaction ID"] ?? false;
+            $transaction_id     = $method_msg["Merchant Transaction ID"] ?? false;
 
 
 
